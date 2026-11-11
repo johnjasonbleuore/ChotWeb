@@ -13,14 +13,14 @@ namespace ChotWeb.Services
     ///   Render:  Environment variable  Admin__Users = chot:FirstPassword; manager:SecondPassword
     ///   Your PC: dotnet user-secrets set "Admin:Users" "chot:FirstPassword; manager:SecondPassword"
     ///
-    /// Each entry is username:password, separated by ";" or new lines. Usernames ignore upper/lower case;
-    /// passwords don't. A password may contain ":" but not ";".
+    /// Each entry is username:password, separated by ";", "," or new lines. Usernames ignore upper/lower case;
+    /// passwords don't. A password may contain ":" but not ";" or ",". Surrounding quotes are ignored.
     /// Removing a user, or changing their password, signs them out on their next click.
     /// </summary>
     public class AdminUsers(IConfiguration configuration)
     {
         public const string StampClaim = "pw_stamp";
-        private static readonly char[] EntrySeparators = [';', '\n', '\r'];
+        private static readonly char[] EntrySeparators = [';', ',', '\n', '\r'];
 
         public IReadOnlyDictionary<string, string> Users
         {
@@ -29,15 +29,38 @@ namespace ChotWeb.Services
                 Dictionary<string, string> users = new(StringComparer.OrdinalIgnoreCase);
                 IConfigurationSection section = configuration.GetSection("Admin:Users");
 
-                if (section.Value is not null)
+                // Also accept the common misspellings of the setting name (Admin_Users, ADMIN_USERS, AdminUsers).
+                string? text = NonBlank(section.Value) ?? NonBlank(configuration["Admin_Users"]) ?? NonBlank(configuration["AdminUsers"]);
+
+                if (text is not null)
                 {
-                    // "chot:pass1; manager:pass2"
-                    foreach (string entry in section.Value.Split(EntrySeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    // "chot:pass1; manager:pass2" (also commas or one per line), or blocks like
+                    // "username: chot" + "password: pass1" on separate lines.
+                    string? pendingUsername = null;
+                    foreach (string rawEntry in Unquote(text).Split(EntrySeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                     {
+                        string entry = Unquote(rawEntry);
                         int colon = entry.IndexOf(':');
-                        if (colon > 0)
+                        if (colon <= 0)
                         {
-                            Add(users, entry[..colon], entry[(colon + 1)..]);
+                            continue; // labels like "admin 1"
+                        }
+
+                        string key = Unquote(entry[..colon]);
+                        string value = Unquote(entry[(colon + 1)..]);
+
+                        if (key.Equals("username", StringComparison.OrdinalIgnoreCase) || key.Equals("user", StringComparison.OrdinalIgnoreCase))
+                        {
+                            pendingUsername = value;
+                        }
+                        else if (key.Equals("password", StringComparison.OrdinalIgnoreCase) && pendingUsername is not null)
+                        {
+                            Add(users, pendingUsername, value);
+                            pendingUsername = null;
+                        }
+                        else
+                        {
+                            Add(users, key, value);
                         }
                     }
                 }
@@ -108,6 +131,16 @@ namespace ChotWeb.Services
             {
                 users[name] = password.Trim();
             }
+        }
+
+        private static string? NonBlank(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        private static string Unquote(string value)
+        {
+            return value.Trim().Trim('"', '\'', '`', '“', '”').Trim();
         }
 
         private static byte[] Digest(string value)

@@ -76,14 +76,22 @@ builder.Services.AddRateLimiter(options =>
 WebApplication app = builder.Build();
 
 // Point out missing admin settings at startup.
-int adminCount = app.Services.GetRequiredService<AdminUsers>().Users.Count;
-if (adminCount == 0)
+IReadOnlyCollection<string> adminNames = app.Services.GetRequiredService<AdminUsers>().Users.Keys.ToList();
+if (adminNames.Count == 0)
 {
-    app.Logger.LogWarning("No admin users are set, so nobody can sign in to /admin. Set Admin__Users (e.g. \"chot:password1; manager:password2\") in the environment.");
+    // Names only (never values) of settings that look like a mistyped Admin__Users.
+    string similar = string.Join(", ", app.Configuration.AsEnumerable()
+        .Select(pair => pair.Key)
+        .Where(key => key.Contains("admin", StringComparison.OrdinalIgnoreCase) || key.Contains("user", StringComparison.OrdinalIgnoreCase))
+        .Where(key => !key.StartsWith("Logging", StringComparison.OrdinalIgnoreCase) && !key.Equals("USERNAME", StringComparison.OrdinalIgnoreCase) && !key.Equals("USERPROFILE", StringComparison.OrdinalIgnoreCase))
+        .Distinct());
+    app.Logger.LogWarning(
+        "No admin users are set, so nobody can sign in to /admin. Add the environment variable Admin__Users with a value like \"chot:password1; manager:password2\". Similar settings found: {Similar}",
+        similar.Length > 0 ? similar : "(none)");
 }
 else
 {
-    app.Logger.LogInformation("{Count} user(s) can sign in to /admin.", adminCount);
+    app.Logger.LogInformation("{Count} user(s) can sign in to /admin: {Usernames}", adminNames.Count, string.Join(", ", adminNames));
 }
 
 // Configure the HTTP request pipeline.

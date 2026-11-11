@@ -54,8 +54,13 @@ namespace ChotWeb.Controllers
             string? username = admins.Verify(model.Username, model.Password);
             if (username is null)
             {
-                logger.LogWarning("Failed admin sign-in for '{Username}' from {Ip}.", model.Username, HttpContext.Connection.RemoteIpAddress);
-                ModelState.AddModelError("", "Wrong username or password.");
+                IReadOnlyDictionary<string, string> users = admins.Users;
+                logger.LogWarning(
+                    "Failed admin sign-in for '{Username}' from {Ip}. {Count} user(s) are set up: {Usernames}",
+                    model.Username, HttpContext.Connection.RemoteIpAddress, users.Count, string.Join(", ", users.Keys));
+                ModelState.AddModelError("", users.Count == 0
+                    ? "No admin accounts are set up on this server yet. Add Admin__Users in the hosting settings."
+                    : "Wrong username or password.");
                 model.Password = "";
                 return View(model);
             }
