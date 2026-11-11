@@ -12,12 +12,8 @@ builder.Services.AddSingleton(paths);
 builder.Services.AddSingleton<SiteContentStore>();
 builder.Services.AddSingleton<MediaStore>();
 
-// ---- Admin sign-in by emailed one-time code (allowed emails: Admin:AllowedEmails) ----
-builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<AdminAllowList>();
-builder.Services.AddSingleton<LoginCodeStore>();
-builder.Services.AddSingleton<LoginCodeMailer>();
-builder.Services.AddHttpClient(nameof(LoginCodeMailer), client => client.Timeout = TimeSpan.FromSeconds(20));
+// ---- Admin users and passwords (setting Admin:Users, e.g. env var Admin__Users = "chot:pass1; manager:pass2") ----
+builder.Services.AddSingleton<AdminUsers>();
 
 builder.Services.AddControllersWithViews(options =>
 {
@@ -45,7 +41,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.SlidingExpiration = true;
-        options.Events.OnValidatePrincipal = AdminAllowList.ValidatePrincipalAsync;
+        options.Events.OnValidatePrincipal = AdminUsers.ValidatePrincipalAsync;
         options.Events.OnRedirectToLogin = context =>
         {
             // The designer's API calls get a 401 instead of an HTML redirect.
@@ -80,19 +76,14 @@ builder.Services.AddRateLimiter(options =>
 WebApplication app = builder.Build();
 
 // Point out missing admin settings at startup.
-int adminCount = app.Services.GetRequiredService<AdminAllowList>().Emails.Count;
+int adminCount = app.Services.GetRequiredService<AdminUsers>().Users.Count;
 if (adminCount == 0)
 {
-    app.Logger.LogWarning("No admin emails are set, so nobody can sign in to /admin. Set Admin__AllowedEmails (comma-separated) in the environment.");
+    app.Logger.LogWarning("No admin users are set, so nobody can sign in to /admin. Set Admin__Users (e.g. \"chot:password1; manager:password2\") in the environment.");
 }
 else
 {
-    app.Logger.LogInformation("{Count} email(s) can sign in to /admin.", adminCount);
-}
-
-if (!app.Services.GetRequiredService<LoginCodeMailer>().IsConfigured)
-{
-    app.Logger.LogWarning("Email sending isn't set up (Email__BrevoApiKey or Email__Smtp__Host, plus Email__From). Sign-in codes will be written to this log instead.");
+    app.Logger.LogInformation("{Count} user(s) can sign in to /admin.", adminCount);
 }
 
 // Configure the HTTP request pipeline.

@@ -279,11 +279,6 @@ body.admin {
 .auth-card__logo { width: 44px; height: 44px; margin-bottom: 18px; border-radius: 13px; font-size: 30px; }
 .auth-card h1 { font-size: 22px; }
 .auth-card__lead { margin: 6px 0 22px; color: var(--a-muted); font-size: 13.5px; }
-.auth-card__lead strong { color: var(--a-text); word-break: break-all; }
-.auth-card .code-input { font-size: 24px; font-weight: 700; letter-spacing: .35em; text-align: center; font-variant-numeric: tabular-nums; }
-.auth-card__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 18px 0 0; font-size: 13px; color: var(--a-muted); }
-.auth-card__links a { color: var(--a-accent); font-weight: 600; text-decoration: none; }
-.auth-card__links a:hover { text-decoration: underline; }
 
 /* ==========================================================================
    Designer

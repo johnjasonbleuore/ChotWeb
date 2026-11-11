@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Lets you keep the admin email list and email keys out of the code on your PC: dotnet user-secrets set "Admin:AllowedEmails" "you@gmail.com" -->
+    <!-- Keeps admin usernames/passwords out of the code on your PC: dotnet user-secrets set "Admin:Users" "chot:password1; manager:password2" -->
     <UserSecretsId>chotweb-0b6f6c8e-5d0e-4a7e-9a52-3c1f0f7d2b41</UserSecretsId>
   </PropertyGroup>
 

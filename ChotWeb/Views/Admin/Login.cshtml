@@ -1,4 +1,4 @@
-@model LoginEmailViewModel
+@model LoginViewModel
 @{
     ViewData["Title"] = "Sign in";
     ViewData["BodyClass"] = "admin--auth";
@@ -7,18 +7,29 @@
 <div class="auth-card">
     <div class="auth-card__logo">C</div>
     <h1>Welcome back</h1>
-    <p class="auth-card__lead">Enter your email and we'll send you a 6-digit sign-in code.</p>
+    <p class="auth-card__lead">Sign in to edit your site.</p>
 
     <form method="post" asp-action="Login" novalidate>
         <input type="hidden" asp-for="ReturnUrl" />
         <div asp-validation-summary="ModelOnly" class="form-error"></div>
 
         <label class="field">
-            <span>Email</span>
-            <input asp-for="Email" type="email" autocomplete="email" inputmode="email" autofocus />
-            <span asp-validation-for="Email" class="field__error"></span>
+            <span>Username</span>
+            <input asp-for="Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus />
+            <span asp-validation-for="Username" class="field__error"></span>
         </label>
 
-        <button class="abtn abtn--primary abtn--block" type="submit">Send code</button>
+        <label class="field">
+            <span>Password</span>
+            <input asp-for="Password" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="field__error"></span>
+        </label>
+
+        <label class="check">
+            <input asp-for="RememberMe" />
+            <span>@Html.DisplayNameFor(m => m.RememberMe)</span>
+        </label>
+
+        <button class="abtn abtn--primary abtn--block" type="submit">Sign in</button>
     </form>
 </div>
