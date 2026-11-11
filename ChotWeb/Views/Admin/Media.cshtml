@@ -1,0 +1,16 @@
+@{
+    ViewData["Title"] = "Media";
+    ViewData["AdminPage"] = "media";
+}
+
+<div class="admin-page">
+    <header class="admin-page__head">
+        <h1>Media library</h1>
+        <p>
+            Upload photos (JPG, PNG, WebP, GIF, AVIF — up to @(MediaStore.MaxImageBytes / 1024 / 1024) MB) and videos
+            (MP4, MOV, WebM — up to @(MediaStore.MaxVideoBytes / 1024 / 1024) MB). Then pick them in the Designer.
+        </p>
+    </header>
+
+    <div data-media-library></div>
+</div>

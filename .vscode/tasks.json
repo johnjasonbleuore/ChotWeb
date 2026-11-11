@@ -1,0 +1,23 @@
+{
+    // "build" runs before every F5 (see launch.json). Build errors go to the PROBLEMS panel (Error List).
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${workspaceFolder}/ChotWeb/ChotWeb.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "group": "build",
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "silent",
+                "clear": true
+            }
+        }
+    ]
+}

@@ -1,0 +1,70 @@
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Designer";
+    ViewData["AdminPage"] = "designer";
+    ViewData["BodyClass"] = "admin--designer";
+
+    object FontsFor(FontOption[] options) => options.Select(f => new { name = f.Name, css = $"\"{f.Name}\", {f.Fallback}", weight = f.Weight });
+
+    string config = JsonSerializer.Serialize(new
+    {
+        previewUrl = Url.Action("Index", "Home", new { preview = true }),
+        fonts = new { display = FontsFor(FontCatalog.Display), script = FontsFor(FontCatalog.Script), body = FontsFor(FontCatalog.Body) },
+        icons = SocialAccount.Icons,
+        brandStyles = BrandsSection.Styles,
+    });
+    string allFonts = FontCatalog.GoogleFontsUrl([.. FontCatalog.Display, .. FontCatalog.Script, .. FontCatalog.Body]);
+}
+
+@section Head {
+    @* All selectable fonts, so the font pickers can show live samples. *@
+    <link rel="stylesheet" href="@allFonts" />
+}
+
+@section BarActions {
+    <span class="save-status" data-save-status>Loading…</span>
+    <button class="abtn abtn--ghost" type="button" data-discard disabled title="Undo everything since the last publish">
+        <svg class="ai" aria-hidden="true"><use href="#a-undo" /></svg><span class="hide-sm">Discard</span>
+    </button>
+    <button class="abtn abtn--primary" type="button" data-publish disabled>
+        <svg class="ai" aria-hidden="true"><use href="#a-check" /></svg> Publish
+    </button>
+}
+
+<div class="designer" data-designer>
+    <nav class="designer__rail" aria-label="Designer panels" data-rail></nav>
+
+    <section class="designer__panel" aria-live="polite">
+        <header class="panel-head">
+            <h1 data-panel-title>Designer</h1>
+            <p data-panel-hint></p>
+        </header>
+        <div class="panel-body" data-panel-body>
+            <p class="muted">Loading your site…</p>
+        </div>
+    </section>
+
+    <section class="designer__stage" aria-label="Live preview">
+        <div class="stage-toolbar">
+            <div class="segmented" role="group" aria-label="Preview size">
+                <button type="button" class="is-active" data-device="desktop" title="Desktop"><svg class="ai" aria-hidden="true"><use href="#a-desktop" /></svg></button>
+                <button type="button" data-device="tablet" title="Tablet"><svg class="ai" aria-hidden="true"><use href="#a-tablet" /></svg></button>
+                <button type="button" data-device="phone" title="Phone"><svg class="ai" aria-hidden="true"><use href="#a-phone" /></svg></button>
+            </div>
+            <span class="stage-toolbar__hint">Click any part of the preview to edit it</span>
+            <span class="badge badge--draft" data-draft-badge hidden>Unpublished changes</span>
+        </div>
+        <div class="stage" data-stage>
+            <div class="stage__device" data-device-frame>
+                <iframe title="Site preview" class="is-front" data-frame></iframe>
+                <iframe title="Site preview (loading)" data-frame tabindex="-1" aria-hidden="true"></iframe>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script type="application/json" id="designer-config">@Html.Raw(config)</script>
+
+@section Scripts {
+    <script src="~/admin/designer.js" asp-append-version="true"></script>
+}

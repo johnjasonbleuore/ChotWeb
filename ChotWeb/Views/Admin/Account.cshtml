@@ -1,0 +1,58 @@
+@model AccountViewModel
+@{
+    ViewData["Title"] = "Account";
+    ViewData["AdminPage"] = "account";
+}
+
+<div class="admin-page admin-page--narrow">
+    <header class="admin-page__head">
+        <h1>Account</h1>
+        <p>Change your username or password. Changing them signs you out on other devices.</p>
+    </header>
+
+    @if (TempData["Message"] is string message)
+    {
+        <div class="notice notice--ok"><svg class="ai" aria-hidden="true"><use href="#a-check" /></svg> @message</div>
+    }
+
+    <form method="post" asp-action="Account" class="card" novalidate>
+        <div asp-validation-summary="ModelOnly" class="form-error"></div>
+
+        <label class="field">
+            <span>Username</span>
+            <input asp-for="Username" autocomplete="username" />
+            <span asp-validation-for="Username" class="field__error"></span>
+        </label>
+
+        <div class="field-row">
+            <label class="field">
+                <span>New password <small>(leave blank to keep)</small></span>
+                <input asp-for="NewPassword" autocomplete="new-password" />
+                <span asp-validation-for="NewPassword" class="field__error"></span>
+            </label>
+            <label class="field">
+                <span>Confirm new password</span>
+                <input asp-for="ConfirmNewPassword" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmNewPassword" class="field__error"></span>
+            </label>
+        </div>
+
+        <hr />
+
+        <label class="field">
+            <span>Current password <small>(required to save)</small></span>
+            <input asp-for="CurrentPassword" autocomplete="current-password" />
+            <span asp-validation-for="CurrentPassword" class="field__error"></span>
+        </label>
+
+        <button class="abtn abtn--primary" type="submit">Save changes</button>
+    </form>
+
+    <div class="card card--muted">
+        <h2>Forgot your password?</h2>
+        <p>
+            On the computer or server running the site, delete <code>App_Data/admin.json</code> and restart the site.
+            A new setup code appears in the console so you can create the account again. Your site content and uploads are not affected.
+        </p>
+    </div>
+</div>

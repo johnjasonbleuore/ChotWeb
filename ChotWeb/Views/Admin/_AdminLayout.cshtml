@@ -1,0 +1,69 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    // Separate from the public site layout: own look, never indexed, never linked from the public pages.
+    string csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken ?? "";
+    bool signedIn = User.Identity?.IsAuthenticated == true;
+    string active = ViewData["AdminPage"] as string ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="csrf-token" content="@csrf" />
+    <meta name="app-base" content="@Url.Content("~/")" />
+    <title>@ViewData["Title"] · Site admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Yellowtail&display=swap" />
+    <link rel="stylesheet" href="~/admin/admin.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body class="admin @ViewData["BodyClass"]">
+    <partial name="_Icons" />
+    <partial name="~/Views/Admin/_AdminIcons.cshtml" />
+
+    @if (signedIn)
+    {
+        <header class="admin-bar">
+            <a class="admin-bar__brand" asp-controller="Admin" asp-action="Designer">
+                <span class="admin-bar__logo">C</span>
+                <span>Site admin</span>
+            </a>
+
+            <nav class="admin-bar__nav" aria-label="Admin">
+                <a asp-controller="Admin" asp-action="Designer" class="@(active == "designer" ? "is-active" : null)">
+                    <svg class="ai" aria-hidden="true"><use href="#a-palette" /></svg> Designer
+                </a>
+                <a asp-controller="Admin" asp-action="Media" class="@(active == "media" ? "is-active" : null)">
+                    <svg class="ai" aria-hidden="true"><use href="#a-folder" /></svg> Media
+                </a>
+                <a asp-controller="Admin" asp-action="Account" class="@(active == "account" ? "is-active" : null)">
+                    <svg class="ai" aria-hidden="true"><use href="#a-user" /></svg> Account
+                </a>
+            </nav>
+
+            <div class="admin-bar__actions">
+                @await RenderSectionAsync("BarActions", required: false)
+                <a class="abtn abtn--ghost" href="@Url.Action("Index", "Home")" target="_blank" rel="noopener" title="Open the public site">
+                    <svg class="ai" aria-hidden="true"><use href="#a-external" /></svg><span class="hide-sm">View site</span>
+                </a>
+                <form method="post" asp-controller="Admin" asp-action="Logout">
+                    <button class="abtn abtn--ghost" type="submit" title="Sign out (@User.Identity?.Name)">
+                        <svg class="ai" aria-hidden="true"><use href="#a-logout" /></svg><span class="hide-sm">Sign out</span>
+                    </button>
+                </form>
+            </div>
+        </header>
+    }
+
+    <main class="admin-main">
+        @RenderBody()
+    </main>
+
+    <div class="toasts" aria-live="polite" data-toasts></div>
+    <script src="~/admin/admin.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

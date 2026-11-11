@@ -1,0 +1,50 @@
+@model PhotosSection
+
+<section class="photos" id="photos" aria-labelledby="photos-title" data-section="photos">
+    <div class="wrap photos__inner">
+        <div class="photos__text">
+            <h2 id="photos-title" class="section-title section-title--left">
+                <span class="display display--brown">@Model.TitleA</span> <span class="display display--orange">@Model.TitleB</span>
+                <svg class="photos__bow" aria-hidden="true"><use href="#i-bow" /></svg>
+            </h2>
+            @if (!string.IsNullOrWhiteSpace(Model.Subtitle))
+            {
+                <p class="script script--sub">@Model.Subtitle <svg class="icon" aria-hidden="true"><use href="#i-heart-outline" /></svg></p>
+            }
+
+            @foreach (string paragraph in Model.Paragraphs)
+            {
+                <p>@paragraph</p>
+            }
+
+            @if (Model.Tags.Count > 0)
+            {
+                <ul class="tags">
+                    @foreach (string tag in Model.Tags)
+                    {
+                        <li class="pill pill--outline">@tag</li>
+                    }
+                </ul>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.ButtonLabel) && !string.IsNullOrWhiteSpace(Model.GalleryUrl))
+            {
+                <a class="btn btn--solid" href="@Url.Content(Model.GalleryUrl)" target="_blank" rel="noopener">
+                    @Model.ButtonLabel <svg class="icon" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+                </a>
+            }
+        </div>
+
+        <ul class="gallery">
+            <li class="gallery__item gallery__item--portrait">
+                <partial name="~/Views/Home/_PhotoTile.cshtml" model="Model.Portrait" />
+            </li>
+            @for (int i = 0; i < Model.Items.Count; i++)
+            {
+                <li class="gallery__item gallery__item--@(i % 4)">
+                    <partial name="~/Views/Home/_PhotoTile.cshtml" model="Model.Items[i]" />
+                </li>
+            }
+        </ul>
+    </div>
+</section>

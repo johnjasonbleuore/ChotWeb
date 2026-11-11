@@ -1,0 +1,128 @@
+﻿@inject SiteContentStore Store
+@{
+    // HomeController passes the content (live, or the draft when previewing); other pages use the live copy.
+    SiteContent site = ViewData["Site"] as SiteContent ?? Store.GetLive();
+    bool preview = ViewData["Preview"] is true;
+    bool fullBleed = ViewData["FullBleed"] is true;
+    string home = Url.Action("Index", "Home") ?? "/";
+
+    FontOption display = FontCatalog.Find(FontCatalog.Display, site.Theme.DisplayFont);
+    FontOption script = FontCatalog.Find(FontCatalog.Script, site.Theme.ScriptFont);
+    FontOption body = FontCatalog.Find(FontCatalog.Body, site.Theme.BodyFont);
+    List<SectionSettings> navSections = site.Sections.Where(s => s.Visible && s.ShowInNav && !string.IsNullOrWhiteSpace(s.NavLabel)).ToList();
+    bool contactVisible = site.Sections.Any(s => s.Id == SectionSettings.Contact && s.Visible);
+}
+<!DOCTYPE html>
+<html lang="en" class="@(preview ? "is-preview" : null)">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · @site.Header.SiteName</title>
+    <meta name="description" content="@site.Header.SiteName — @site.Hero.IntroText" />
+    <meta name="theme-color" content="@site.Theme.Primary" />
+    @if (preview)
+    {
+        <meta name="robots" content="noindex" />
+    }
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="@FontCatalog.GoogleFontsUrl(display, script, body)" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ChotWeb.styles.css" asp-append-version="true" />
+    @* Theme from the designer. Values are validated (hex colours, fonts from FontCatalog) before saving. *@
+    <style>
+        :root {
+            --orange: @Html.Raw(site.Theme.Primary);
+            --brown: @Html.Raw(site.Theme.Dark);
+            --ink: @Html.Raw(site.Theme.Text);
+            --cream: @Html.Raw(site.Theme.Surface);
+            --bg: @Html.Raw(site.Theme.Background);
+            --font-display: "@Html.Raw(display.Name)", @Html.Raw(display.Fallback);
+            --display-weight: @display.Weight;
+            --font-script: "@Html.Raw(script.Name)", @Html.Raw(script.Fallback);
+            --script-weight: @script.Weight;
+            --font-body: "@Html.Raw(body.Name)", @Html.Raw(body.Fallback);
+        }
+    </style>
+</head>
+<body>
+    <partial name="_Icons" />
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" data-section="header">
+        <div class="wrap site-header__inner">
+            <nav class="site-nav" aria-label="Primary">
+                <ul>
+                    @foreach (SectionSettings navItem in navSections)
+                    {
+                        <li>
+                            <a href="@home#@navItem.Anchor" data-nav-link="@navItem.Anchor">
+                                @navItem.NavLabel <svg class="site-nav__heart" aria-hidden="true"><use href="#i-heart" /></svg>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+
+            <a class="logo" href="@home">@site.Header.SiteName</a>
+
+            <div class="site-header__actions">
+                @if (!string.IsNullOrWhiteSpace(site.Header.MediaKitLabel) && !string.IsNullOrWhiteSpace(site.Header.MediaKitUrl))
+                {
+                    <a class="btn btn--outline btn--sm hide-mobile" href="@Url.Content(site.Header.MediaKitUrl)">@site.Header.MediaKitLabel</a>
+                }
+                @if (!string.IsNullOrWhiteSpace(site.Header.CtaLabel) && contactVisible)
+                {
+                    <a class="btn btn--solid btn--sm" href="@home#contact">
+                        @site.Header.CtaLabel <svg class="icon" aria-hidden="true"><use href="#i-heart-outline" /></svg>
+                    </a>
+                }
+                <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu" data-menu-toggle>
+                    <svg class="icon menu-btn__open" aria-hidden="true"><use href="#i-menu" /></svg>
+                    <svg class="icon menu-btn__close" aria-hidden="true"><use href="#i-close" /></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="mobile-menu" id="mobile-menu" hidden>
+            <ul class="wrap">
+                @foreach (SectionSettings navItem in navSections)
+                {
+                    <li><a href="@home#@navItem.Anchor">@navItem.NavLabel</a></li>
+                }
+                @if (!string.IsNullOrWhiteSpace(site.Header.MediaKitLabel) && !string.IsNullOrWhiteSpace(site.Header.MediaKitUrl))
+                {
+                    <li><a href="@Url.Content(site.Header.MediaKitUrl)">@site.Header.MediaKitLabel</a></li>
+                }
+            </ul>
+        </div>
+    </header>
+
+    <main id="main" class="@(fullBleed ? null : "page wrap")">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer" data-section="footer">
+        <div class="wrap site-footer__inner">
+            <p>&copy; @DateTime.Now.Year @site.Header.SiteName@(string.IsNullOrWhiteSpace(site.Footer.Tagline) ? "" : " · " + site.Footer.Tagline)</p>
+            <p class="site-footer__sign">@site.Footer.Signature</p>
+            <ul class="site-footer__links">
+                @if (site.Footer.ShowSocialLinks)
+                {
+                    @foreach (SocialAccount social in site.Socials.Where(s => !string.IsNullOrWhiteSpace(s.Url)))
+                    {
+                        <li><a href="@Url.Content(social.Url)" target="_blank" rel="noopener">@social.Platform</a></li>
+                    }
+                }
+            </ul>
+        </div>
+    </footer>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (preview)
+    {
+        <script src="~/js/preview.js" asp-append-version="true"></script>
+    }
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

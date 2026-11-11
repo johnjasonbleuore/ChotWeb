@@ -1,0 +1,15 @@
+@model PhotoItem
+<figure class="photo">
+    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+    {
+        <img src="@Url.Content(Model.ImageUrl)" alt="@Model.Label" loading="lazy" />
+    }
+    else
+    {
+        <svg class="photo__camera" aria-hidden="true"><use href="#i-camera" /></svg>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Label))
+    {
+        <figcaption class="pill pill--light">@Model.Label</figcaption>
+    }
+</figure>

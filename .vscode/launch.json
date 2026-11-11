@@ -1,0 +1,37 @@
+{
+    // F5 = build + start ChotWeb under the debugger (like Visual Studio's green "Start" button).
+    // Ctrl+F5 = start without debugging.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ChotWeb",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/ChotWeb/bin/Debug/net9.0/ChotWeb.dll",
+            "cwd": "${workspaceFolder}/ChotWeb",
+            "args": [],
+            "stopAtEntry": false,
+            "justMyCode": true,
+
+            // Same URLs/environment as the "https" profile in Properties/launchSettings.json
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "https://localhost:7230;http://localhost:5161"
+            },
+
+            // Opens the site in the browser once the server is up (Visual Studio does the same)
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+
+            // Console.WriteLine / Debug.WriteLine and logpoints show in the DEBUG CONSOLE panel
+            // (Visual Studio's Output + Immediate windows in one). Hide the "Loaded 'xyz.dll'" noise.
+            "console": "internalConsole",
+            "logging": {
+                "moduleLoad": false
+            }
+        }
+    ]
+}

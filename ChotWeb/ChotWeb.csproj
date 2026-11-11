@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- App_Data holds runtime data (admin account, site content, uploads, sign-in keys).
+       Keep it out of the build and publish output so publishing never overwrites the live site's data. -->
+  <ItemGroup>
+    <Content Remove="App_Data\**" />
+    <None Remove="App_Data\**" />
+    <Compile Remove="App_Data\**" />
+  </ItemGroup>
+
+</Project>

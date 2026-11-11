@@ -1,0 +1,75 @@
+@model VideosSection
+
+<section class="videos" id="videos" aria-labelledby="videos-title" data-section="videos">
+    <div class="wrap">
+        <header class="section-head section-head--light">
+            @if (!string.IsNullOrWhiteSpace(Model.LeftLabel))
+            {
+                <span class="section-head__side">@Model.LeftLabel</span>
+            }
+            <h2 id="videos-title" class="section-title">
+                <span class="display">@Model.TitleBold</span> <span class="script">@Model.TitleScript</span>
+            </h2>
+            @if (!string.IsNullOrWhiteSpace(Model.RightLabel))
+            {
+                <span class="section-head__side">@Model.RightLabel</span>
+            }
+        </header>
+
+        <div class="carousel" data-carousel>
+            <button class="carousel__btn carousel__btn--prev" type="button" aria-label="Previous videos" data-carousel-prev>
+                <svg class="icon" aria-hidden="true"><use href="#i-chevron-left" /></svg>
+            </button>
+
+            <ul class="carousel__track" data-carousel-track>
+                @foreach (VideoItem video in Model.Items)
+                {
+                    bool hasFile = !string.IsNullOrEmpty(video.VideoUrl);
+                    string href = hasFile ? Url.Content(video.VideoUrl) : Url.Content(string.IsNullOrWhiteSpace(video.Url) ? "#" : video.Url);
+                    string meta = string.Join(" · ", new[] { video.Category, video.Duration }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                    <li class="video-card">
+                        <a class="video-card__phone" href="@href" aria-label="Watch @video.Title"
+                           target="@(hasFile ? null : "_blank")" rel="@(hasFile ? null : "noopener")"
+                           data-video-src="@(hasFile ? href : null)">
+                            @if (!string.IsNullOrEmpty(video.ThumbnailUrl))
+                            {
+                                <img src="@Url.Content(video.ThumbnailUrl)" alt="" loading="lazy" />
+                            }
+                            else if (hasFile)
+                            {
+                                @* No cover image: show an early frame of the uploaded video. *@
+                                <video src="@(href)#t=0.5" muted playsinline preload="metadata" aria-hidden="true"></video>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(video.Tag))
+                            {
+                                <span class="pill pill--light video-card__tag">@video.Tag</span>
+                            }
+                            <span class="video-card__play"><svg aria-hidden="true"><use href="#i-play" /></svg></span>
+                            @if (!string.IsNullOrWhiteSpace(video.Views))
+                            {
+                                <span class="video-card__views"><svg aria-hidden="true"><use href="#i-play" /></svg> @video.Views</span>
+                            }
+                        </a>
+                        <div class="video-card__info">
+                            <div>
+                                <h3>@video.Title</h3>
+                                @if (meta.Length > 0)
+                                {
+                                    <p>@meta</p>
+                                }
+                            </div>
+                            <a class="pill pill--cream" href="@href" tabindex="-1"
+                               target="@(hasFile ? null : "_blank")" rel="@(hasFile ? null : "noopener")"
+                               data-video-src="@(hasFile ? href : null)">Watch</a>
+                        </div>
+                    </li>
+                }
+            </ul>
+
+            <button class="carousel__btn carousel__btn--next" type="button" aria-label="Next videos" data-carousel-next>
+                <svg class="icon" aria-hidden="true"><use href="#i-chevron-right" /></svg>
+            </button>
+        </div>
+    </div>
+</section>

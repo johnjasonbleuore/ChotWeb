@@ -1,0 +1,38 @@
+﻿@model SiteContent
+@{
+    ViewData["Title"] = string.IsNullOrWhiteSpace(Model.Footer.Tagline) ? "Home" : Model.Footer.Tagline;
+    ViewData["FullBleed"] = true;
+}
+
+@* Sections render in the order (and visibility) set in the designer's Layout panel. *@
+@foreach (SectionSettings sec in Model.Sections.Where(s => s.Visible))
+{
+    switch (sec.Id)
+    {
+        case SectionSettings.Hero:
+            <partial name="~/Views/Home/Sections/_Hero.cshtml" model="Model" />
+            break;
+        case SectionSettings.Videos:
+            <partial name="~/Views/Home/Sections/_Videos.cshtml" model="Model.Videos" />
+            break;
+        case SectionSettings.Photos:
+            <partial name="~/Views/Home/Sections/_Photos.cshtml" model="Model.Photos" />
+            break;
+        case SectionSettings.Brands:
+            <partial name="~/Views/Home/Sections/_Brands.cshtml" model="Model.Brands" />
+            break;
+        case SectionSettings.Contact:
+            <partial name="~/Views/Home/Sections/_Contact.cshtml" model="Model.Contact" />
+            break;
+    }
+}
+
+@* Pop-up player for uploaded videos (opened by site.js). *@
+<dialog class="video-modal" aria-label="Video player" data-video-modal>
+    <form method="dialog" class="video-modal__bar">
+        <button class="video-modal__close" type="submit" aria-label="Close video">
+            <svg class="icon" aria-hidden="true"><use href="#i-close" /></svg>
+        </button>
+    </form>
+    <video controls playsinline preload="metadata"></video>
+</dialog>

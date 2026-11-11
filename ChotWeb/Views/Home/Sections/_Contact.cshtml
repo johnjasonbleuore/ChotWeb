@@ -1,0 +1,43 @@
+@model ContactSection
+
+<section class="contact" id="contact" aria-labelledby="contact-title" data-section="contact">
+    <div class="wrap">
+        <div class="contact__card">
+            <div class="contact__text">
+                <h2 id="contact-title" class="section-title section-title--left">
+                    <span class="display">@Model.TitleBold</span>
+                    <span class="script">@Model.TitleScript <svg class="icon" aria-hidden="true"><use href="#i-heart-outline" /></svg></span>
+                </h2>
+                <p>@Model.Text</p>
+                @if (!string.IsNullOrWhiteSpace(Model.ButtonLabel) && !string.IsNullOrWhiteSpace(Model.ButtonUrl))
+                {
+                    <a class="btn btn--white" href="@Url.Content(Model.ButtonUrl)">
+                        @Model.ButtonLabel <svg class="icon" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+                    </a>
+                }
+            </div>
+
+            <ul class="contact__list">
+                @foreach (ContactItem item in Model.Items)
+                {
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(item.Url))
+                        {
+                            <a class="contact-row" href="@Url.Content(item.Url)" target="@(item.Url.StartsWith("http") ? "_blank" : null)" rel="noopener">
+                                <span class="contact-row__icon"><svg aria-hidden="true"><use href="#i-@item.Icon" /></svg></span>
+                                <span><small>@item.Label</small><strong>@item.Value</strong></span>
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="contact-row">
+                                <span class="contact-row__icon"><svg aria-hidden="true"><use href="#i-@item.Icon" /></svg></span>
+                                <span><small>@item.Label</small><strong>@item.Value</strong></span>
+                            </div>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,52 @@
+@model BrandsSection
+
+<section class="brands" id="brands" aria-labelledby="brands-title" data-section="brands">
+    <div class="wrap">
+        <header class="section-head">
+            @if (!string.IsNullOrWhiteSpace(Model.LeftLabel))
+            {
+                <span class="section-head__side">
+                    <svg class="icon icon--accent" aria-hidden="true"><use href="#i-sparkle" /></svg> @Model.LeftLabel
+                </span>
+            }
+            <h2 id="brands-title" class="section-title">
+                <span class="display display--brown">@Model.TitleBold</span> <span class="script">@Model.TitleScript</span>
+            </h2>
+            @if (!string.IsNullOrWhiteSpace(Model.RightLabel))
+            {
+                <span class="section-head__side">
+                    @Model.RightLabel <svg class="icon icon--accent" aria-hidden="true"><use href="#i-heart" /></svg>
+                </span>
+            }
+        </header>
+
+        <ul class="brand-list">
+            @foreach (BrandItem brand in Model.Items)
+            {
+                <li class="brand brand--@brand.Style">
+                    @if (!string.IsNullOrWhiteSpace(brand.Url))
+                    {
+                        <a class="brand__link" href="@Url.Content(brand.Url)" target="_blank" rel="noopener" aria-label="@brand.Name"></a>
+                    }
+                    @if (!string.IsNullOrEmpty(brand.LogoUrl))
+                    {
+                        <img src="@Url.Content(brand.LogoUrl)" alt="@brand.Name" loading="lazy" />
+                    }
+                    else
+                    {
+                        <span>@brand.Name</span>
+                    }
+                </li>
+            }
+        </ul>
+
+        @if (Model.ShowNote && !string.IsNullOrWhiteSpace(Model.Note))
+        {
+            <p class="brands__note">
+                <svg class="icon" aria-hidden="true"><use href="#i-sparkle" /></svg>
+                @Model.Note
+                <svg class="icon" aria-hidden="true"><use href="#i-sparkle" /></svg>
+            </p>
+        }
+    </div>
+</section>
