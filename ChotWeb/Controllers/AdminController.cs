@@ -8,11 +8,18 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace ChotWeb.Controllers
 {
-    /// <summary>Admin area pages: sign-in, first-run setup, designer, media library and account.</summary>
+    /// <summary>
+    /// Admin area pages: email sign-in, designer and media library.
+    /// Only emails on the allow list (Admin:AllowedEmails) can sign in; each sign-in uses a one-time emailed code.
+    /// </summary>
     [Authorize]
     [Route("admin")]
     [AutoValidateAntiforgeryToken]
-    public class AdminController(AdminAccountStore accounts, ILogger<AdminController> logger) : Controller
+    public class AdminController(
+        AdminAllowList allowList,
+        LoginCodeStore codes,
+        LoginCodeMailer mailer,
+        ILogger<AdminController> logger) : Controller
     {
         [HttpGet("")]
         public IActionResult Designer()
@@ -26,114 +33,98 @@ namespace ChotWeb.Controllers
             return View();
         }
 
-        [HttpGet("account")]
-        public IActionResult Account()
-        {
-            return View(new AccountViewModel { Username = accounts.Username ?? "" });
-        }
-
-        [HttpPost("account")]
-        public async Task<IActionResult> Account(AccountViewModel model)
-        {
-            if (ModelState.IsValid && !accounts.Verify(accounts.Username, model.CurrentPassword))
-            {
-                ModelState.AddModelError(nameof(model.CurrentPassword), "Your current password is wrong.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            accounts.Update(model.Username, model.NewPassword);
-            await SignInAsync(persistent: false);
-            logger.LogInformation("Admin account details were changed.");
-
-            TempData["Message"] = string.IsNullOrEmpty(model.NewPassword) ? "Username saved." : "Username and password saved.";
-            return RedirectToAction(nameof(Account));
-        }
+        // ---- Step 1: email ----
 
         [AllowAnonymous]
         [HttpGet("login")]
-        public IActionResult Login(string? returnUrl = null)
+        public IActionResult Login(string? returnUrl = null, string? email = null)
         {
-            if (!accounts.HasAccount)
-            {
-                return RedirectToAction(nameof(Setup));
-            }
-
             if (User.Identity?.IsAuthenticated == true)
             {
                 return RedirectToAction(nameof(Designer));
             }
 
-            return View(new LoginViewModel { ReturnUrl = returnUrl });
+            return View(new LoginEmailViewModel { ReturnUrl = returnUrl, Email = email ?? "" });
         }
 
         [AllowAnonymous]
         [HttpPost("login")]
         [EnableRateLimiting("login")]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        public async Task<IActionResult> Login(LoginEmailViewModel model, CancellationToken cancellationToken)
         {
-            if (!accounts.HasAccount)
-            {
-                return RedirectToAction(nameof(Setup));
-            }
-
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            if (!accounts.Verify(model.Username, model.Password))
+            string email = AdminAllowList.Normalize(model.Email);
+
+            // People not on the list see the same "check your email" page, so the list can't be guessed.
+            if (!allowList.IsAllowed(email))
             {
-                logger.LogWarning("Failed admin sign-in for '{Username}' from {Ip}.", model.Username, HttpContext.Connection.RemoteIpAddress);
-                ModelState.AddModelError("", "Wrong username or password.");
-                model.Password = "";
-                return View(model);
+                logger.LogWarning("Sign-in code requested for {Email}, which is not on the admin list ({Ip}).", email, HttpContext.Connection.RemoteIpAddress);
+                return RedirectToCodePage(email, model.ReturnUrl);
             }
 
-            await SignInAsync(model.RememberMe);
-            return Url.IsLocalUrl(model.ReturnUrl) ? LocalRedirect(model.ReturnUrl) : RedirectToAction(nameof(Designer));
+            if (codes.TryIssue(email, out string code, out _))
+            {
+                try
+                {
+                    await mailer.SendAsync(email, code, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    codes.Cancel(email);
+                    logger.LogError(ex, "Couldn't email the sign-in code to {Email}.", email);
+                    ModelState.AddModelError("", "We couldn't send the email just now. Please try again in a minute.");
+                    return View(model);
+                }
+            }
+
+            return RedirectToCodePage(email, model.ReturnUrl);
         }
 
+        // ---- Step 2: code ----
+
         [AllowAnonymous]
-        [HttpGet("setup")]
-        public IActionResult Setup()
+        [HttpGet("login/code")]
+        public IActionResult Code(string? email, string? returnUrl = null)
         {
-            if (accounts.HasAccount)
+            if (string.IsNullOrWhiteSpace(email))
             {
                 return RedirectToAction(nameof(Login));
             }
 
-            accounts.GetOrCreateSetupCode();
-            return View(new SetupViewModel());
+            return View(new LoginCodeViewModel { Email = AdminAllowList.Normalize(email), ReturnUrl = returnUrl });
         }
 
         [AllowAnonymous]
-        [HttpPost("setup")]
+        [HttpPost("login/code")]
         [EnableRateLimiting("login")]
-        public async Task<IActionResult> Setup(SetupViewModel model)
+        public async Task<IActionResult> Code(LoginCodeViewModel model)
         {
-            if (accounts.HasAccount)
-            {
-                return RedirectToAction(nameof(Login));
-            }
-
-            if (ModelState.IsValid && !accounts.CheckSetupCode(model.SetupCode))
-            {
-                ModelState.AddModelError(nameof(model.SetupCode), "That setup code is wrong.");
-            }
-
+            model.Email = AdminAllowList.Normalize(model.Email);
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            accounts.Create(model.Username, model.Password);
-            logger.LogInformation("Admin account '{Username}' created.", model.Username);
-            await SignInAsync(persistent: false);
-            return RedirectToAction(nameof(Designer));
+            // Checking the list again here means an email removed after its code was sent can't get in.
+            if (!allowList.IsAllowed(model.Email) || !codes.Verify(model.Email, model.Code))
+            {
+                logger.LogWarning("Wrong or expired sign-in code for {Email} ({Ip}).", model.Email, HttpContext.Connection.RemoteIpAddress);
+                ModelState.AddModelError(nameof(model.Code), "That code is wrong or has expired. Check the latest email, or send a new code.");
+                model.Code = "";
+                return View(model);
+            }
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                AdminAllowList.CreatePrincipal(model.Email),
+                new AuthenticationProperties { IsPersistent = model.RememberMe });
+            logger.LogInformation("{Email} signed in to the admin.", model.Email);
+
+            return Url.IsLocalUrl(model.ReturnUrl) ? LocalRedirect(model.ReturnUrl) : RedirectToAction(nameof(Designer));
         }
 
         [HttpPost("logout")]
@@ -143,12 +134,9 @@ namespace ChotWeb.Controllers
             return RedirectToAction(nameof(Login));
         }
 
-        private Task SignInAsync(bool persistent)
+        private RedirectToActionResult RedirectToCodePage(string email, string? returnUrl)
         {
-            return HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                accounts.CreatePrincipal(),
-                new AuthenticationProperties { IsPersistent = persistent });
+            return RedirectToAction(nameof(Code), new { email, returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null });
         }
     }
 }

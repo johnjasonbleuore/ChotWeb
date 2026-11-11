@@ -6,7 +6,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <!-- App_Data holds runtime data (admin account, site content, uploads, sign-in keys).
+  <PropertyGroup>
+    <!-- Lets you keep the admin email list and email keys out of the code on your PC: dotnet user-secrets set "Admin:AllowedEmails" "you@gmail.com" -->
+    <UserSecretsId>chotweb-0b6f6c8e-5d0e-4a7e-9a52-3c1f0f7d2b41</UserSecretsId>
+  </PropertyGroup>
+
+  <!-- App_Data holds runtime data (site content, uploads, sign-in keys).
        Keep it out of the build and publish output so publishing never overwrites the live site's data. -->
   <ItemGroup>
     <Content Remove="App_Data\**" />

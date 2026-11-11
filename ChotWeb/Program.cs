@@ -6,12 +6,18 @@ using Microsoft.Extensions.FileProviders;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// ---- Storage (App_Data): content JSON, admin account, uploads, sign-in keys ----
+// ---- Storage (App_Data): content JSON, uploads, sign-in keys ----
 StoragePaths paths = new(builder.Environment.ContentRootPath, builder.Configuration["Storage:DataPath"]);
 builder.Services.AddSingleton(paths);
 builder.Services.AddSingleton<SiteContentStore>();
-builder.Services.AddSingleton<AdminAccountStore>();
 builder.Services.AddSingleton<MediaStore>();
+
+// ---- Admin sign-in by emailed one-time code (allowed emails: Admin:AllowedEmails) ----
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<AdminAllowList>();
+builder.Services.AddSingleton<LoginCodeStore>();
+builder.Services.AddSingleton<LoginCodeMailer>();
+builder.Services.AddHttpClient(nameof(LoginCodeMailer), client => client.Timeout = TimeSpan.FromSeconds(20));
 
 builder.Services.AddControllersWithViews(options =>
 {
@@ -39,7 +45,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.SlidingExpiration = true;
-        options.Events.OnValidatePrincipal = AdminAccountStore.ValidatePrincipalAsync;
+        options.Events.OnValidatePrincipal = AdminAllowList.ValidatePrincipalAsync;
         options.Events.OnRedirectToLogin = context =>
         {
             // The designer's API calls get a 401 instead of an HTML redirect.
@@ -57,7 +63,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddAuthorization();
 
-// At most 5 sign-in / setup attempts per minute from one address.
+// At most 5 sign-in attempts (code requests + code entries) per minute from one address.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -73,17 +79,20 @@ builder.Services.AddRateLimiter(options =>
 
 WebApplication app = builder.Build();
 
-// First run: print the one-time code needed to create the admin account.
-AdminAccountStore accounts = app.Services.GetRequiredService<AdminAccountStore>();
-if (!accounts.HasAccount)
+// Point out missing admin settings at startup.
+int adminCount = app.Services.GetRequiredService<AdminAllowList>().Emails.Count;
+if (adminCount == 0)
 {
-    app.Logger.LogWarning(
-        "\n==============================================================\n" +
-        "  No admin account yet. Open /admin/setup and use this code:\n" +
-        "      SETUP CODE:  {Code}\n" +
-        "  (also saved in {File})\n" +
-        "==============================================================",
-        accounts.GetOrCreateSetupCode(), paths.SetupCodeFile);
+    app.Logger.LogWarning("No admin emails are set, so nobody can sign in to /admin. Set Admin__AllowedEmails (comma-separated) in the environment.");
+}
+else
+{
+    app.Logger.LogInformation("{Count} email(s) can sign in to /admin.", adminCount);
+}
+
+if (!app.Services.GetRequiredService<LoginCodeMailer>().IsConfigured)
+{
+    app.Logger.LogWarning("Email sending isn't set up (Email__BrevoApiKey or Email__Smtp__Host, plus Email__From). Sign-in codes will be written to this log instead.");
 }
 
 // Configure the HTTP request pipeline.

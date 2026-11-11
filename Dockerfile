@@ -13,7 +13,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Admin account, site content, uploads and sign-in keys are stored here.
+# Site content, uploads and sign-in keys are stored here.
 # On Render, attach a persistent disk with mount path /var/data, or they are wiped on every deploy/restart.
 ENV Storage__DataPath=/var/data
 RUN mkdir -p /var/data
